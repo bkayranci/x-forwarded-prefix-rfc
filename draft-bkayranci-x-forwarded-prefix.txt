@@ -1,0 +1,137 @@
+
+
+
+
+HTTP Working Group                               T. B. Kayrancioglu, Ed.
+Internet-Draft                                                          
+Intended status: Standards Track                            Y. Ozen, Ed.
+Expires: 21 May 2027                                    17 November 2026
+
+
+                The X-Forwarded-Prefix HTTP Header Field
+                 draft-bkayranci-x-forwarded-prefix-00
+
+Abstract
+
+   This document specifies the X-Forwarded-Prefix HTTP header field, a
+   widely deployed de-facto standard used by reverse proxies, API
+   gateways, load balancers, and ingress controllers to convey the
+   original URI path prefix that was stripped before forwarding a
+   request.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 21 May 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  References
+     2.1.  Normative References
+     2.2.  Informative References
+   Authors' Addresses
+
+1.  Introduction
+
+   [... truncated ...]
+
+2.  References
+
+2.1.  Normative References
+
+   [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/rfc/rfc9110>.
+
+   [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
+              Resource Identifier (URI): Generic Syntax", STD 66,
+              RFC 3986, DOI 10.17487/RFC3986, January 2005,
+              <https://www.rfc-editor.org/rfc/rfc3986>.
+
+   [RFC5234]  Crocker, D., Ed. and P. Overell, "Augmented BNF for Syntax
+              Specifications: ABNF", STD 68, RFC 5234,
+              DOI 10.17487/RFC5234, January 2008,
+              <https://www.rfc-editor.org/rfc/rfc5234>.
+
+   [RFC9651]  Nottingham, M. and P. Kamp, "Structured Field Values for
+              HTTP", RFC 9651, DOI 10.17487/RFC9651, September 2024,
+              <https://www.rfc-editor.org/rfc/rfc9651>.
+
+2.2.  Informative References
+
+   [RFC7239]  Petersson, A. and M. Nilsson, "Forwarded HTTP Extension",
+              RFC 7239, DOI 10.17487/RFC7239, June 2014,
+              <https://www.rfc-editor.org/rfc/rfc7239>.
+
+   [RFC6648]  Saint-Andre, P., Crocker, D., and M. Nottingham,
+              "Deprecating the "X-" Prefix and Similar Constructs in
+              Application Protocols", BCP 178, RFC 6648,
+              DOI 10.17487/RFC6648, June 2012,
+              <https://www.rfc-editor.org/rfc/rfc6648>.
+
+   [SPRING-WEB]
+              VMware / Broadcom, "Spring Framework Reference
+              Documentation - Forwarded Headers", 2024,
+              <https://docs.spring.io/spring-
+              framework/reference/web/webmvc/filters.html#x-forwarded-
+              prefix>.
+
+   [ASPNET-CORE]
+              Microsoft Corporation, "Configure ASP.NET Core to work
+              with proxy servers and load balancers", 2024,
+              <https://learn.microsoft.com/aspnet/core/host-and-deploy/
+              proxy-load-balancer>.
+
+   [KEYCLOAK-PROXY]
+              Red Hat, "Keycloak Server Administration Guide -
+              Configuring the Reverse Proxy Headers", 2024,
+              <https://www.keycloak.org/server/
+              reverseproxy#_configure_the_reverse_proxy_headers>.
+
+   [ANGULAR-SECURITY]
+              Google LLC, "Angular Security Best Practices - Server-Side
+              Request Forgery (SSRF) Prevention", 2024,
+              <https://angular.dev/best-practices/security>.
+
+   [FABIO-LB] Schroeder, F., "Fabio - A fast, modern, zero-conf load-
+              balancing HTTP(S) router for Consul", 2024,
+              <https://github.com/fabiolb/fabio>.
+
+Authors' Addresses
+
+   Türkalp Burak Kayrancıoğlu (editor)
+   Türkiye
+   Email: turkalp.kayrancioglu@trendyol.com
+
+
+   Yunus Özen (editor)
+   Türkiye
+   Email: yunus.ozen@yalova.edu.tr
