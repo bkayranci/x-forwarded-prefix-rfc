@@ -26,7 +26,7 @@ author:
   name: Türkalp Burak Kayrancıoğlu
   asciiFullname: Turkalp Burak Kayrancioglu
   country: TR
-  email: turkalp.kayrancioglu@trendyol.com
+  email: bkayranci@gmail.com
 - role: editor
   ins: Y. Ozen
   name: Yunus Özen
