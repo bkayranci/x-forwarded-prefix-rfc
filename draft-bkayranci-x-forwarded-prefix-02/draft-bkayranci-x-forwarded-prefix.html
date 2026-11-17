@@ -1,0 +1,2257 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>The X-Forwarded-Prefix HTTP Header Field</title>
+<meta content="Türkalp Burak Kayrancıoğlu" name="author">
+<meta content="Yunus Özen" name="author">
+<meta content="
+       This document specifies the  X-Forwarded-Prefix  HTTP header field, a widely deployed de-facto standard used by reverse proxies, API gateways, load balancers, and ingress controllers to communicate the original URI path prefix that was stripped, rewritten, or matched prior to forwarding a request to an upstream service. Standardizing this header provides normative behavior across HTTP intermediaries and origin servers, enabling upstream applications to reliably reconstruct original client-facing target URIs, issue accurate HTTP redirects, generate self-referential hypermedia links, configure application base paths, and mitigate security vulnerabilities arising from improper path handling and header injection. Furthermore, this document establishes the requirement for reverse proxy implementations to emit this header unless explicitly configured otherwise, specifies deterministic prefix concatenation for multi-proxy chaining, defines strict percent-encoding preservation, establishes atomic trust boundaries for the forwarded header family, specifies structured field mapping in accordance with RFC 9651, and registers the field in the IANA HTTP Field Name Registry along with an extension parameter for the RFC 7239 Forwarded header. 
+    " name="description">
+<meta content="xml2rfc 3.35.0" name="generator">
+<meta content="HTTP" name="keyword">
+<meta content="Reverse Proxy" name="keyword">
+<meta content="API Gateway" name="keyword">
+<meta content="Forwarded" name="keyword">
+<meta content="X-Forwarded-Prefix" name="keyword">
+<meta content="Path Prefix" name="keyword">
+<meta content="Routing" name="keyword">
+<meta content="URI Reconstruction" name="keyword">
+<meta content="draft-bkayranci-x-forwarded-prefix-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.35.0
+    Python 3.14.10
+    ConfigArgParse 1.9.0
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.14.3
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.9.4
+-->
+<link href="draft-bkayranci-x-forwarded-prefix.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill], [fill] *)) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">X-Forwarded-Prefix Header</td>
+<td class="right">November 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Kayrancioglu &amp; Ozen</td>
+<td class="center">Expires 21 May 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">HTTP Working Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-bkayranci-x-forwarded-prefix-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-11-17" class="published">17 November 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-05-21">21 May 2027</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">T. B. Kayrancioglu, <span class="editor">Ed.</span>
+</div>
+</div>
+<div class="author">
+      <div class="author-name">Y. Ozen, <span class="editor">Ed.</span>
+</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">The X-Forwarded-Prefix HTTP Header Field</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document specifies the <code>X-Forwarded-Prefix</code> HTTP header field, a widely deployed de-facto standard used by reverse proxies, API gateways, load balancers, and ingress controllers to communicate the original URI path prefix that was stripped, rewritten, or matched prior to forwarding a request to an upstream service. Standardizing this header provides normative behavior across HTTP intermediaries and origin servers, enabling upstream applications to reliably reconstruct original client-facing target URIs, issue accurate HTTP redirects, generate self-referential hypermedia links, configure application base paths, and mitigate security vulnerabilities arising from improper path handling and header injection. Furthermore, this document establishes the requirement for reverse proxy implementations to emit this header unless explicitly configured otherwise, specifies deterministic prefix concatenation for multi-proxy chaining, defines strict percent-encoding preservation, establishes atomic trust boundaries for the forwarded header family, specifies structured field mapping in accordance with RFC 9651, and registers the field in the IANA HTTP Field Name Registry along with an extension parameter for the RFC 7239 Forwarded header.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-discussion-venues">
+<a href="#name-discussion-venues" class="section-name selfRef">Discussion Venues</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">Source for this draft and an issue tracker can be found at
+    <span><a href="https://github.com/bkayranci/x-forwarded-prefix-rfc">https://github.com/bkayranci/x-forwarded-prefix-rfc</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 21 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-scope-and-delimitation" class="internal xref">Scope and Delimitation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-relationship-to-rfc-7239-an" class="internal xref">Relationship to RFC 7239 and RFC 6648</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.3">
+                <p id="section-toc.1-1.1.2.3.1" class="keepWithNext"><a href="#section-1.3" class="auto internal xref">1.3</a>.  <a href="#name-standards-track-justificati" class="internal xref">Standards Track Justification</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.4">
+                <p id="section-toc.1-1.1.2.4.1"><a href="#section-1.4" class="auto internal xref">1.4</a>.  <a href="#name-requirements-language" class="internal xref">Requirements Language</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-the-x-forwarded-prefix-head" class="internal xref">The X-Forwarded-Prefix Header Field</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1">
+                <p id="section-toc.1-1.2.2.1.1"><a href="#section-2.1" class="auto internal xref">2.1</a>.  <a href="#name-header-field-syntax" class="internal xref">Header Field Syntax</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2">
+                <p id="section-toc.1-1.2.2.2.1"><a href="#section-2.2" class="auto internal xref">2.2</a>.  <a href="#name-structured-field-values-rfc" class="internal xref">Structured Field Values (RFC 9651) Considerations</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3">
+                <p id="section-toc.1-1.2.2.3.1"><a href="#section-2.3" class="auto internal xref">2.3</a>.  <a href="#name-path-normalization-trailing" class="internal xref">Path Normalization, Trailing Slashes, and Percent-Encoding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.4">
+                <p id="section-toc.1-1.2.2.4.1"><a href="#section-2.4" class="auto internal xref">2.4</a>.  <a href="#name-multiple-intermediaries-and" class="internal xref">Multiple Intermediaries and Chaining</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-reverse-proxy-and-gateway-b" class="internal xref">Reverse Proxy and Gateway Behavior</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-intermediary-emission-requi" class="internal xref">Intermediary Emission Requirement</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-path-stripping-and-header-g" class="internal xref">Path Stripping and Header Generation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2.2.1">
+                    <p id="section-toc.1-1.3.2.2.2.1.1"><a href="#section-3.2.1" class="auto internal xref">3.2.1</a>.  <a href="#name-architecture-and-flow-examp" class="internal xref">Architecture and Flow Example</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-perimeter-ingress-and-heade" class="internal xref">Perimeter Ingress and Header Sanitization</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4">
+                <p id="section-toc.1-1.3.2.4.1"><a href="#section-3.4" class="auto internal xref">3.4</a>.  <a href="#name-internal-chaining-and-aggre" class="internal xref">Internal Chaining and Aggregation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-origin-server-and-upstream-" class="internal xref">Origin Server and Upstream Application Processing</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-trust-boundaries-and-atomic" class="internal xref">Trust Boundaries and Atomic Forwarded Header Evaluation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1.2.1">
+                    <p id="section-toc.1-1.4.2.1.2.1.1"><a href="#section-4.1.1" class="auto internal xref">4.1.1</a>.  <a href="#name-atomic-evaluation-rule" class="internal xref">Atomic Evaluation Rule</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-target-uri-reconstruction" class="internal xref">Target URI Reconstruction</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-framework-integration-and-r" class="internal xref">Framework Integration and Routing</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-identity-providers-and-oaut" class="internal xref">Identity Providers and OAuth 2.0 / OpenID Connect</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-forwarded-parameter-extensi" class="internal xref">Forwarded Parameter Extension for RFC 7239</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-the-prefix-parameter-defini" class="internal xref">The "prefix" Parameter Definition</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1.2.1">
+                    <p id="section-toc.1-1.5.2.1.2.1.1"><a href="#section-5.1.1" class="auto internal xref">5.1.1</a>.  <a href="#name-example" class="internal xref">Example</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-header-injection-and-spoofi" class="internal xref">Header Injection and Spoofing</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-open-redirect-vulnerabiliti" class="internal xref">Open Redirect Vulnerabilities</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-http-response-and-cache-poi" class="internal xref">HTTP Response and Cache Poisoning</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4">
+                <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-server-side-request-forgery" class="internal xref">Server-Side Request Forgery (SSRF) in Client and SSR Frameworks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.5">
+                <p id="section-toc.1-1.6.2.5.1"><a href="#section-6.5" class="auto internal xref">6.5</a>.  <a href="#name-path-traversal" class="internal xref">Path Traversal</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-http-field-name-registratio" class="internal xref">HTTP Field Name Registration: X-Forwarded-Prefix</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-http-forwarded-parameter-re" class="internal xref">HTTP Forwarded Parameter Registration: prefix</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-existing-implementations-an" class="internal xref">Existing Implementations and Industry Examples</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-java-spring-framework" class="internal xref">Java / Spring Framework</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-microsoft-net-aspnet-core" class="internal xref">Microsoft .NET / ASP.NET Core</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-red-hat-keycloak" class="internal xref">Red Hat Keycloak</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.4">
+                <p id="section-toc.1-1.9.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-google-angular-and-frontend" class="internal xref">Google Angular and Frontend Frameworks</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.5">
+                <p id="section-toc.1-1.9.2.5.1"><a href="#appendix-A.5" class="auto internal xref">A.5</a>.  <a href="#name-go-ecosystem-and-routing-pr" class="internal xref">Go Ecosystem and Routing Proxies</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.6">
+                <p id="section-toc.1-1.9.2.6.1"><a href="#appendix-A.6" class="auto internal xref">A.6</a>.  <a href="#name-python-web-frameworks" class="internal xref">Python Web Frameworks</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-acknowledgements" class="internal xref">Acknowledgements</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">In modern distributed web and microservice architectures, reverse proxies, API gateways, ingress controllers, load balancers, and service meshes frequently intercept incoming client requests and route them to upstream origin servers based on URI path prefixes. During this routing process, intermediaries commonly strip, rewrite, or trim the matched path prefix before transmitting the request to the upstream application service.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">For example, an API gateway receiving a request for:<a href="#section-1-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-1-3">
+<pre>
+https://api.example.com/customers/v1/profile
+</pre><a href="#section-1-3" class="pilcrow">¶</a>
+</div>
+<p id="section-1-4">may match the path prefix <code>/customers/v1</code>, strip that prefix, and forward the request to an internal upstream microservice as:<a href="#section-1-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-1-5">
+<pre>
+GET /profile HTTP/1.1
+Host: internal-customers.local:8080
+</pre><a href="#section-1-5" class="pilcrow">¶</a>
+</div>
+<p id="section-1-6">While path stripping simplifies internal application routing, it isolates upstream services from the client-facing context. Upstream applications frequently require knowledge of the original client-facing path prefix to:<a href="#section-1-6" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-7.1">
+          <p id="section-1-7.1.1">Construct absolute and path-relative URLs in <code>Location</code> response headers for HTTP redirects (e.g., redirecting <code>/profile</code> to <code>/customers/v1/profile/edit</code> or an authentication endpoint).<a href="#section-1-7.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.2">
+          <p id="section-1-7.2.1">Generate hypermedia controls and links (such as REST HATEOAS, HAL, or JSON:API specifications).<a href="#section-1-7.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.3">
+          <p id="section-1-7.3.1">Serve HTML documents containing correct relative or root-relative asset references (e.g., <code>&lt;base href="..."&gt;</code>, CSS, JavaScript, and image URLs).<a href="#section-1-7.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.4">
+          <p id="section-1-7.4.1">Correctly configure Single Page Application (SPA) client-side routers and Server-Side Rendering (SSR) engines (such as Angular SSR).<a href="#section-1-7.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.5">
+          <p id="section-1-7.5.1">Provide accurate redirect and callback URIs for Identity Providers and authentication protocols, including OAuth 2.0 (RFC 6749) and OpenID Connect (e.g., Keycloak or ASP.NET Core OpenIdConnect handlers).<a href="#section-1-7.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-7.6">
+          <p id="section-1-7.6.1">Produce accurate interactive API documentation (e.g., OpenAPI / Swagger UI).<a href="#section-1-7.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-8">Without knowledge of the stripped prefix, an upstream service that emits a redirect to <code>/login</code> causes the client browser to request <code>https://api.example.com/login</code>, which bypasses the intended gateway route and typically results in an HTTP 404 (Not Found) error or improper routing.<a href="#section-1-8" class="pilcrow">¶</a></p>
+<div id="scope-and-delimitation">
+<section id="section-1.1">
+        <h3 id="name-scope-and-delimitation">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-scope-and-delimitation" class="section-name selfRef">Scope and Delimitation</a>
+        </h3>
+<p id="section-1.1-1">This specification is intentionally and strictly delimited to path-prefix stripping, prepending, and matching operations (commonly referred to as path-prefix routing).<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">Arbitrary regular-expression-based URL rewriting (such as transforming <code>/v1/users</code> into <code>/api/v2/users</code>, reordering arbitrary path segments, or dynamically rewriting query parameters) is inherently non-invertible from the perspective of an upstream application without distributing full bidirectional rewrite rules. Such arbitrary transformations are outside the scope of this specification and require alternate application-layer mechanisms (such as dedicated original-URI headers).<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<p id="section-1.1-3">In modern cloud API gateways, ingress controllers, and microservice routers, the overwhelming majority (exceeding 95%) of service routing rules rely on deterministic prefix matching and stripping (e.g., matching a service mount point <code>/billing</code> and forwarding the remainder to an internal billing service). The <code>X-Forwarded-Prefix</code> header field is specifically and deterministically designed to resolve this universal operational pattern.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="relationship-to-rfc-7239-and-rfc-6648">
+<section id="section-1.2">
+        <h3 id="name-relationship-to-rfc-7239-an">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-relationship-to-rfc-7239-an" class="section-name selfRef">Relationship to RFC 7239 and RFC 6648</a>
+        </h3>
+<p id="section-1.2-1"><span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> created the <code>Forwarded</code> HTTP header field to standardize proxy-related information, defining parameters for the client IP address (<code>for</code>), the proxy IP address (<code>by</code>), the original request authority (<code>host</code>), and the scheme (<code>proto</code>). However, <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> did not define a parameter or mechanism for conveying stripped or rewritten path prefixes.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<p id="section-1.2-2">Consequently, the software engineering industry adopted the <code>X-Forwarded-Prefix</code> header field as a de-facto standard. Over more than a decade, <code>X-Forwarded-Prefix</code> has achieved ubiquitous implementation across major web frameworks, reverse proxies, and enterprise platforms:<a href="#section-1.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1.2-3.1">
+            <p id="section-1.2-3.1.1">The Spring Framework (<code>ForwardedHeaderFilter</code>, <code>UriComponentsBuilder</code>, and Spring Cloud Gateway) <span>[<a href="#SPRING-WEB" class="cite xref">SPRING-WEB</a>]</span>.<a href="#section-1.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-3.2">
+            <p id="section-1.2-3.2.1">Microsoft .NET and ASP.NET Core (<code>ForwardedHeadersMiddleware</code>, <code>ForwardedHeadersOptions</code>) <span>[<a href="#ASPNET-CORE" class="cite xref">ASPNET-CORE</a>]</span>.<a href="#section-1.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-3.3">
+            <p id="section-1.2-3.3.1">Red Hat Keycloak identity and access management <span>[<a href="#KEYCLOAK-PROXY" class="cite xref">KEYCLOAK-PROXY</a>]</span>.<a href="#section-1.2-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-3.4">
+            <p id="section-1.2-3.4.1">Angular Server-Side Rendering (SSR) base path resolution and SSRF defense <span>[<a href="#ANGULAR-SECURITY" class="cite xref">ANGULAR-SECURITY</a>]</span>.<a href="#section-1.2-3.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-3.5">
+            <p id="section-1.2-3.5.1">Go web ecosystems and load balancers (such as Fabio LB <span>[<a href="#FABIO-LB" class="cite xref">FABIO-LB</a>]</span>, Traefik, and Chi/Gin middlewares).<a href="#section-1.2-3.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-3.6">
+            <p id="section-1.2-3.6.1">Python web frameworks (FastAPI / Starlette <code>root_path</code>, Uvicorn proxy header processing).<a href="#section-1.2-3.6.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-3.7">
+            <p id="section-1.2-3.7.1">Node.js, Express, and NestJS reverse proxy middleware.<a href="#section-1.2-3.7.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-1.2-4">Section 3 of <span>[<a href="#RFC6648" class="cite xref">RFC6648</a>]</span> deprecated the "X-" prefix for newly designed application protocols, but explicitly acknowledged that widely deployed constructs <span class="bcp14">MAY</span> be documented and standardized for backwards compatibility and interoperability. <code>X-Forwarded-Prefix</code> is not a newly designed header field; it is an established de-facto protocol mechanism that currently routes billions of HTTP transactions daily across global enterprise infrastructure.<a href="#section-1.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="standards-track-justification">
+<section id="section-1.3">
+        <h3 id="name-standards-track-justificati">
+<a href="#section-1.3" class="section-number selfRef">1.3. </a><a href="#name-standards-track-justificati" class="section-name selfRef">Standards Track Justification</a>
+        </h3>
+<p id="section-1.3-1">This document is targeted for the Standards Track, rather than Informational status, because it is prescriptive rather than descriptive:<a href="#section-1.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-1.3-2">
+<li id="section-1.3-2.1">
+            <p id="section-1.3-2.1.1"><strong>Normative Protocol Requirements:</strong> It establishes mandatory protocol requirements (BCP 14 <code>MUST</code>, <code>MUST NOT</code>, <code>SHOULD</code>) governing proxy forwarding behavior, header sanitization at perimeter boundaries, and deterministic prefix concatenation across chained intermediaries.<a href="#section-1.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.3-2.2">
+            <p id="section-1.3-2.2.1"><strong>Mandatory Security Protections:</strong> It mandates essential security validation mechanisms for upstream applications to prevent critical vulnerabilities, including open redirect attacks (e.g., <code>//evil.com</code>), server-side request forgery (SSRF), cache poisoning (requiring <code>Vary</code> header controls), and path traversal.<a href="#section-1.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.3-2.3">
+            <p id="section-1.3-2.3.1"><strong>Formal Extension of RFC 7239:</strong> It defines normative updates to <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> by establishing the <code>prefix</code> parameter within the IANA HTTP Forwarded Parameters registry, ensuring a forward-compatible migration path away from the "X-" prefix without stranding legacy infrastructure.<a href="#section-1.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.3-2.4">
+            <p id="section-1.3-2.4.1"><strong>Permanent IANA Registration:</strong> It requests permanent registration (<code>permanent</code> status) in the IANA HTTP Field Name Registry.<a href="#section-1.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-1.3-3">Leaving <code>X-Forwarded-Prefix</code> undocumented or merely Informational would perpetuate fragmented implementations, inconsistent path concatenation, and severe security vulnerabilities across the global web ecosystem.<a href="#section-1.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="requirements-language">
+<section id="section-1.4">
+        <h3 id="name-requirements-language">
+<a href="#section-1.4" class="section-number selfRef">1.4. </a><a href="#name-requirements-language" class="section-name selfRef">Requirements Language</a>
+        </h3>
+<p id="section-1.4-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-1.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="the-x-forwarded-prefix-header-field">
+<section id="section-2">
+      <h2 id="name-the-x-forwarded-prefix-head">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-the-x-forwarded-prefix-head" class="section-name selfRef">The X-Forwarded-Prefix Header Field</a>
+      </h2>
+<p id="section-2-1">The <code>X-Forwarded-Prefix</code> HTTP header field conveys the original URI path prefix that was removed, rewritten, or matched by one or more intermediate reverse proxies before the request was dispatched to the upstream origin server.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<div id="header-field-syntax">
+<section id="section-2.1">
+        <h3 id="name-header-field-syntax">
+<a href="#section-2.1" class="section-number selfRef">2.1. </a><a href="#name-header-field-syntax" class="section-name selfRef">Header Field Syntax</a>
+        </h3>
+<p id="section-2.1-1">The <code>X-Forwarded-Prefix</code> header field is defined using the Augmented Backus-Naur Form (ABNF) notation of <span>[<a href="#RFC5234" class="cite xref">RFC5234</a>]</span> and the core rules defined in Section 5.6 of <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>:<a href="#section-2.1-1" class="pilcrow">¶</a></p>
+<span id="name-abnf-syntax-for-x-forwarded"></span><figure id="figure-1">
+          <div class="lang-abnf sourcecode" id="section-2.1-2.1">
+<pre>&lt;CODE BEGINS&gt;
+X-Forwarded-Prefix = #prefix-element
+prefix-element     = path-absolute
+
+&lt;CODE ENDS&gt;</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-abnf-syntax-for-x-forwarded" class="selfRef">ABNF Syntax for X-Forwarded-Prefix</a>
+          </figcaption></figure>
+<p id="section-2.1-3">Where <code>path-absolute</code> is defined in Section 3.3 of <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span> (a path beginning with a single <code>/</code>, but not beginning with <code>//</code>).<a href="#section-2.1-3" class="pilcrow">¶</a></p>
+<p id="section-2.1-4">Examples of valid <code>X-Forwarded-Prefix</code> header fields include:<a href="#section-2.1-4" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-2.1-5">
+<pre>
+X-Forwarded-Prefix: /api
+X-Forwarded-Prefix: /customers/v1
+X-Forwarded-Prefix: /services/billing
+X-Forwarded-Prefix: /
+</pre><a href="#section-2.1-5" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="structured-field-values-rfc-9651-considerations">
+<section id="section-2.2">
+        <h3 id="name-structured-field-values-rfc">
+<a href="#section-2.2" class="section-number selfRef">2.2. </a><a href="#name-structured-field-values-rfc" class="section-name selfRef">Structured Field Values (RFC 9651) Considerations</a>
+        </h3>
+<p id="section-2.2-1">Modern HTTP specifications encourage field definitions to map directly to Structured Field Values for HTTP <span>[<a href="#RFC9651" class="cite xref">RFC9651</a>]</span>. However, <code>X-Forwarded-Prefix</code> was widely deployed before the standardization of <span>[<a href="#RFC9651" class="cite xref">RFC9651</a>]</span>, and its syntax reflects pre-existing HTTP header conventions:<a href="#section-2.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-2.2-2.1">
+            <p id="section-2.2-2.1.1">In <span>[<a href="#RFC9651" class="cite xref">RFC9651</a>]</span>, a token (<code>sf-token</code>) <span class="bcp14">MUST</span> begin with an ASCII letter (<code>ALPHA</code>) or asterisk (<code>*</code>), and cannot begin with a slash (<code>/</code>). Consequently, an unquoted path such as <code>/api/v1</code> is not a valid Structured Field token.<a href="#section-2.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-2.2-2.2">
+            <p id="section-2.2-2.2.1">In Structured Fields syntax, path values are represented as Strings (<code>sf-string</code>), which require enclosing quotation marks (e.g., <code>"/api/v1"</code>).<a href="#section-2.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-2.2-2.3">
+            <p id="section-2.2-2.3.1">In existing production deployments, reverse proxies and web frameworks universally emit and parse unquoted <code>path-absolute</code> values.<a href="#section-2.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-2.2-3">To ensure consistency with modern HTTP specifications while preserving backwards compatibility:<a href="#section-2.2-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-2.2-4">
+<li id="section-2.2-4.1">
+            <p id="section-2.2-4.1.1">Senders generating <code>X-Forwarded-Prefix</code> using classical HTTP syntax emit unquoted <code>path-absolute</code> values as specified in Section 2.1.<a href="#section-2.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-2.2-4.2">
+            <p id="section-2.2-4.2.1">Implementations that parse <code>X-Forwarded-Prefix</code> using generic Structured Field parsers map the field conceptually to a List of Strings (<code>sf-list</code> consisting of <code>sf-string</code> elements). Such parsers <span class="bcp14">SHOULD</span> accommodate unquoted string values to interoperate with existing reverse proxies.<a href="#section-2.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-2.2-4.3">
+            <p id="section-2.2-4.3.1">The standardized <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> <code>prefix</code> parameter defined in Section 5 strictly employs quoted string syntax (<code>prefix="/api/v1"</code>), providing full compliance with Structured Field String rules.<a href="#section-2.2-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="path-normalization-trailing-slashes-and-percent-encoding">
+<section id="section-2.3">
+        <h3 id="name-path-normalization-trailing">
+<a href="#section-2.3" class="section-number selfRef">2.3. </a><a href="#name-path-normalization-trailing" class="section-name selfRef">Path Normalization, Trailing Slashes, and Percent-Encoding</a>
+        </h3>
+<p id="section-2.3-1">To prevent ambiguity when upstream applications concatenate the prefix with the received request path, intermediaries and origin servers <span class="bcp14">MUST</span> observe the following path formatting rules:<a href="#section-2.3-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlNewline" id="section-2.3-2">
+          <dt id="section-2.3-2.1">Leading Slash:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.3-2.2">
+            <p id="section-2.3-2.2.1">The <code>prefix-element</code> <span class="bcp14">MUST</span> begin with a single solidus (<code>/</code>). It <span class="bcp14">MUST NOT</span> begin with two or more solidi (<code>//</code>), to prevent downstream interpretation as a protocol-relative URI (see <a href="#Security" class="auto internal xref">Section 6</a>).<a href="#section-2.3-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.3-2.3">Trailing Slash:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.3-2.4">
+            <p id="section-2.3-2.4.1">A reverse proxy <span class="bcp14">SHOULD NOT</span> append a trailing solidus (<code>/</code>) to the prefix value unless the entire prefix consists solely of a single solidus (<code>/</code>). For example, a proxy stripping <code>/api/v1/</code> from <code>/api/v1/users</code> <span class="bcp14">SHOULD</span> set <code>X-Forwarded-Prefix: /api/v1</code>. This allows an upstream application that receives request path <code>/users</code> to concatenate the prefix and path directly: <code>/api/v1</code> + <code>/users</code> = <code>/api/v1/users</code>.<a href="#section-2.3-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.3-2.5">Dot Segments:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.3-2.6">
+            <p id="section-2.3-2.6.1">Intermediaries <span class="bcp14">MUST</span> remove any dot-segments (<code>.</code> and <code>..</code>) from the prefix in accordance with Section 5.2.4 of <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span> prior to emitting the header field.<a href="#section-2.3-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.3-2.7">Percent-Encoding Preservation:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.3-2.8">
+            <p id="section-2.3-2.8.1">The value of <code>X-Forwarded-Prefix</code> <span class="bcp14">MUST</span> strictly adhere to the <code>path-absolute</code> production of <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>. Unencoded spaces, control characters, and reserved characters outside the <code>pchar</code> production are prohibited and <span class="bcp14">MUST</span> be percent-encoded.<a href="#section-2.3-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.3-2.9"></dt>
+          <dd style="margin-left: 1.5em" id="section-2.3-2.10">
+            <p id="section-2.3-2.10.1">When stripping a path prefix from an incoming request-target, an intermediary <span class="bcp14">MUST</span> preserve the raw percent-encoded representation as received in the request URI (e.g., preserving <code>/my%20app</code>, rather than decoding it to <code>/my app</code> or double-encoding it to <code>/my%2520app</code>). Intermediaries <span class="bcp14">MUST NOT</span> decode percent-encoded triplets prior to emitting the header field. Uppercase hexadecimal digits <span class="bcp14">SHOULD</span> be used for percent-encoding in accordance with Section 2.1 of <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span>.<a href="#section-2.3-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.3-2.11"></dt>
+          <dd style="margin-left: 1.5em" id="section-2.3-2.12">
+            <p id="section-2.3-2.12.1">Because the header preserves the exact percent-encoding of the original client URI, upstream applications can concatenate the prefix directly with the request path without introducing double-encoding or decoding mismatches.<a href="#section-2.3-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="multiple-intermediaries-and-chaining">
+<section id="section-2.4">
+        <h3 id="name-multiple-intermediaries-and">
+<a href="#section-2.4" class="section-number selfRef">2.4. </a><a href="#name-multiple-intermediaries-and" class="section-name selfRef">Multiple Intermediaries and Chaining</a>
+        </h3>
+<p id="section-2.4-1">In multi-tier proxy deployments, an HTTP request may traverse multiple intermediaries that each perform path prefix stripping (for example, an edge API gateway stripping <code>/portal</code> followed by an internal cluster ingress stripping <code>/finance</code>).<a href="#section-2.4-1" class="pilcrow">¶</a></p>
+<p id="section-2.4-2">Web application frameworks (including Spring Framework, ASP.NET Core, FastAPI, and Keycloak) universally expect <code>X-Forwarded-Prefix</code> to contain a single, consolidated path string (e.g., <code>/portal/finance</code>) to populate application base path properties (such as <code>PathBase</code> or <code>contextPath</code>). These frameworks do not parse or match routing rules against comma-separated lists.<a href="#section-2.4-2" class="pilcrow">¶</a></p>
+<p id="section-2.4-3">To guarantee deterministic interoperability across multi-proxy topologies:<a href="#section-2.4-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-2.4-4">
+<li id="section-2.4-4.1">
+            <p id="section-2.4-4.1.1"><strong>Intermediary Concatenation Requirement:</strong> When an intermediary receives an incoming request containing an <code>X-Forwarded-Prefix</code> header from a trusted upstream intermediary and subsequently strips an additional path prefix, the intermediary <span class="bcp14">MUST</span> concatenate its stripped prefix onto the existing prefix value (e.g., appending <code>/finance</code> to an existing <code>/portal</code> to yield <code>X-Forwarded-Prefix: /portal/finance</code>).<a href="#section-2.4-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-2.4-4.2">
+            <p id="section-2.4-4.2.1"><strong>List Emission Prohibition:</strong> Intermediaries <span class="bcp14">MUST NOT</span> emit multiple <code>X-Forwarded-Prefix</code> header fields or format the prefix as a comma-separated list unless explicitly configured for legacy debugging.<a href="#section-2.4-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-2.4-4.3">
+            <p id="section-2.4-4.3.1"><strong>Upstream Application Parsing:</strong> Although intermediaries <span class="bcp14">MUST</span> concatenate prefixes into a single canonical path, an upstream application that receives multiple comma-separated values (for example, due to legacy intermediaries or HTTP header field folding under Section 5.3 of <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>) <span class="bcp14">MUST</span> evaluate and concatenate the list elements from left to right into a single normalized path (e.g., resolving <code>/portal, /finance</code> into <code>/portal/finance</code>), or reject the request if configured for strict single-prefix validation.<a href="#section-2.4-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+</section>
+</div>
+<div id="reverse-proxy-and-gateway-behavior">
+<section id="section-3">
+      <h2 id="name-reverse-proxy-and-gateway-b">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-reverse-proxy-and-gateway-b" class="section-name selfRef">Reverse Proxy and Gateway Behavior</a>
+      </h2>
+<div id="intermediary-emission-requirement">
+<section id="section-3.1">
+        <h3 id="name-intermediary-emission-requi">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-intermediary-emission-requi" class="section-name selfRef">Intermediary Emission Requirement</a>
+        </h3>
+<p id="section-3.1-1">An intermediary that strips, rewrites, or matches a URI path prefix prior to forwarding a request to an upstream service <span class="bcp14">SHOULD</span> emit the <code>X-Forwarded-Prefix</code> header field unless explicitly configured otherwise.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2">Historical deployments frequently required manual operator configuration (e.g., explicitly configuring <code>proxy_set_header X-Forwarded-Prefix $prefix;</code>). Establishing this forwarding behavior as the standard default prevents configuration oversights that lead to broken links, broken redirects, and authentication failures in microservice deployments.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="path-stripping-and-header-generation">
+<section id="section-3.2">
+        <h3 id="name-path-stripping-and-header-g">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-path-stripping-and-header-g" class="section-name selfRef">Path Stripping and Header Generation</a>
+        </h3>
+<p id="section-3.2-1">When an intermediary matches a request-target against a routing rule and rewrites or strips a path prefix:<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.2-2">
+<li id="section-3.2-2.1">
+            <p id="section-3.2-2.1.1">The intermediary <span class="bcp14">MUST</span> compute the exact prefix path stripped from the original request URI.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.2-2.2">
+            <p id="section-3.2-2.2.1">The intermediary <span class="bcp14">MUST</span> normalize the prefix to comply with <code>path-absolute</code> syntax, preserving raw percent-encoding.<a href="#section-3.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.2-2.3">
+            <p id="section-3.2-2.3.1">The intermediary <span class="bcp14">MUST</span> emit the <code>X-Forwarded-Prefix</code> header field on the forwarded request.<a href="#section-3.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<div id="architecture-and-flow-example">
+<section id="section-3.2.1">
+          <h4 id="name-architecture-and-flow-examp">
+<a href="#section-3.2.1" class="section-number selfRef">3.2.1. </a><a href="#name-architecture-and-flow-examp" class="section-name selfRef">Architecture and Flow Example</a>
+          </h4>
+<p id="section-3.2.1-1">The following diagram illustrates the path stripping and prefix forwarding sequence:<a href="#section-3.2.1-1" class="pilcrow">¶</a></p>
+<span id="name-path-stripping-and-prefix-f"></span><figure id="figure-2">
+            <div class="alignLeft art-text artwork" id="section-3.2.1-2.1">
+<pre>
++--------+                +-------------+             +----------+
+| Client |                | API Gateway |             | Upstream |
++--------+                +-------------+             +----------+
+    |                            |                          |
+    | GET /store/products/42     |                          |
+    | Host: example.com          |                          |
+    |---------------------------&gt;|                          |
+    |                            | Strips prefix "/store"   |
+    |                            | Sets X-Forwarded-Prefix  |
+    |                            |-------------------------&gt;|
+    |                            |                          | (Request)
+    |                            |                          |
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-path-stripping-and-prefix-f" class="selfRef">Path Stripping and Prefix Forwarding Flow</a>
+            </figcaption></figure>
+<p id="section-3.2.1-3">The forwarded HTTP request received by the upstream origin server:<a href="#section-3.2.1-3" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-3.2.1-4">
+<pre>
+GET /products/42 HTTP/1.1
+Host: catalog-service.internal
+X-Forwarded-Prefix: /store
+X-Forwarded-Proto: https
+X-Forwarded-Host: example.com
+</pre><a href="#section-3.2.1-4" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="perimeter-ingress-and-header-sanitization">
+<section id="section-3.3">
+        <h3 id="name-perimeter-ingress-and-heade">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-perimeter-ingress-and-heade" class="section-name selfRef">Perimeter Ingress and Header Sanitization</a>
+        </h3>
+<p id="section-3.3-1">An intermediary deployed at an untrusted trust boundary (such as an external Internet gateway accepting connections from arbitrary clients) <span class="bcp14">MUST NOT</span> trust incoming <code>X-Forwarded-Prefix</code> headers sent by clients.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<p id="section-3.3-2">The ingress intermediary <span class="bcp14">MUST</span> perform one of the following actions:<a href="#section-3.3-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.3-3.1">
+            <p id="section-3.3-3.1.1">Strip and discard any client-supplied <code>X-Forwarded-Prefix</code> header fields before applying routing rules.<a href="#section-3.3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.3-3.2">
+            <p id="section-3.3-3.2.1">Overwrite the header field with the verified prefix determined by the gateway's own routing configuration.<a href="#section-3.3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-3.3-4">Failure to sanitize incoming headers allows external attackers to perform header injection and open redirect attacks (see <a href="#Security" class="auto internal xref">Section 6</a>).<a href="#section-3.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="internal-chaining-and-aggregation">
+<section id="section-3.4">
+        <h3 id="name-internal-chaining-and-aggre">
+<a href="#section-3.4" class="section-number selfRef">3.4. </a><a href="#name-internal-chaining-and-aggre" class="section-name selfRef">Internal Chaining and Aggregation</a>
+        </h3>
+<p id="section-3.4-1">Within a trusted internal network, when an intermediary receives an incoming request containing an <code>X-Forwarded-Prefix</code> header from a trusted peer intermediary:<a href="#section-3.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.4-2.1">
+            <p id="section-3.4-2.1.1">If the receiving intermediary does not modify the request path, it <span class="bcp14">MUST</span> forward the <code>X-Forwarded-Prefix</code> header unchanged.<a href="#section-3.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.4-2.2">
+            <p id="section-3.4-2.2.1">If the receiving intermediary strips an additional path segment, it <span class="bcp14">MUST</span> append its stripped segment to the existing prefix in accordance with Section 2.4 (e.g., appending <code>/checkout</code> to <code>/shop</code> to yield <code>/shop/checkout</code>).<a href="#section-3.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="origin-server-and-upstream-application-processing">
+<section id="section-4">
+      <h2 id="name-origin-server-and-upstream-">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-origin-server-and-upstream-" class="section-name selfRef">Origin Server and Upstream Application Processing</a>
+      </h2>
+<div id="trust-boundaries-and-atomic-forwarded-header-evaluation">
+<section id="section-4.1">
+        <h3 id="name-trust-boundaries-and-atomic">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-trust-boundaries-and-atomic" class="section-name selfRef">Trust Boundaries and Atomic Forwarded Header Evaluation</a>
+        </h3>
+<p id="section-4.1-1">Upstream origin servers and application frameworks <span class="bcp14">MUST NOT</span> blindly trust the <code>X-Forwarded-Prefix</code> header. An application <span class="bcp14">MUST</span> only evaluate <code>X-Forwarded-Prefix</code> when the immediate client connection originates from a trusted reverse proxy.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">Trusted proxy verification mechanisms include:<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1-3.1">
+            <p id="section-4.1-3.1.1">IP address allowlists (e.g., verifying the socket remote address matches private proxy subnets or container network gateways).<a href="#section-4.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-3.2">
+            <p id="section-4.1-3.2.1">Mutual TLS (mTLS) authentication between the proxy and upstream service.<a href="#section-4.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-3.3">
+            <p id="section-4.1-3.3.1">Shared secret tokens or internal network isolation.<a href="#section-4.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<div id="atomic-evaluation-rule">
+<section id="section-4.1.1">
+          <h4 id="name-atomic-evaluation-rule">
+<a href="#section-4.1.1" class="section-number selfRef">4.1.1. </a><a href="#name-atomic-evaluation-rule" class="section-name selfRef">Atomic Evaluation Rule</a>
+          </h4>
+<p id="section-4.1.1-1"><code>X-Forwarded-Prefix</code> shares an identical and inseparable trust boundary with <code>X-Forwarded-Host</code>, <code>X-Forwarded-Proto</code>, and <code>X-Forwarded-For</code> (as well as <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> <code>Forwarded</code>). A critical security failure occurs when an intermediary or origin server selectively validates or sanitizes one forwarded header (e.g., <code>X-Forwarded-Host</code>) while trusting or neglecting another (e.g., <code>X-Forwarded-Prefix</code>).<a href="#section-4.1.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1.1-2">Intermediaries and upstream origin servers <span class="bcp14">MUST</span> apply an atomic trust policy:<a href="#section-4.1.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1.1-3.1">
+              <p id="section-4.1.1-3.1.1">If the incoming connection is from an untrusted client or network interface, the intermediary <span class="bcp14">MUST</span> sanitize (strip or overwrite) ALL incoming <code>X-Forwarded-*</code> headers, and the upstream application <span class="bcp14">MUST</span> ignore or reject ALL incoming <code>X-Forwarded-*</code> headers.<a href="#section-4.1.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.1.1-3.2">
+              <p id="section-4.1.1-3.2.1">Intermediaries and applications <span class="bcp14">MUST NOT</span> selectively accept or trust <code>X-Forwarded-Prefix</code> without verifying the entire forwarded header set under the same trusted proxy policy.<a href="#section-4.1.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="target-uri-reconstruction">
+<section id="section-4.2">
+        <h3 id="name-target-uri-reconstruction">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-target-uri-reconstruction" class="section-name selfRef">Target URI Reconstruction</a>
+        </h3>
+<p id="section-4.2-1">When an upstream application needs to construct the original client-facing URI, it combines the forwarded headers with local request metadata:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<span id="name-uri-component-resolution-ma"></span><table class="center" id="table-1">
+          <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-uri-component-resolution-ma" class="selfRef">URI Component Resolution Matrix</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Component</th>
+              <th class="text-left" rowspan="1" colspan="1">Source Header Field / Metadata</th>
+              <th class="text-left" rowspan="1" colspan="1">Fallback</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Scheme</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>X-Forwarded-Proto</code> (or <code>Forwarded: proto=...</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Incoming connection scheme (<code>http</code> / <code>https</code>)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Host &amp; Port</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>X-Forwarded-Host</code>, <code>X-Forwarded-Port</code> (or <code>Forwarded: host=...</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>Host</code> header field</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Path Prefix</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>X-Forwarded-Prefix</code> (or <code>Forwarded: prefix=...</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Empty string <code>""</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Request Path</td>
+              <td class="text-left" rowspan="1" colspan="1">Path component of the incoming HTTP request-line</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>/</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Query String</td>
+              <td class="text-left" rowspan="1" colspan="1">Query component of the incoming HTTP request-line</td>
+              <td class="text-left" rowspan="1" colspan="1">None</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.2-3">The full client-facing URI is reconstructed as:<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.2-4">
+<pre>
+reconstructed_uri = Scheme + "://" + Authority +
+                    Prefix + RequestPath [ "?" Query ]
+</pre><a href="#section-4.2-4" class="pilcrow">¶</a>
+</div>
+<p id="section-4.2-5">Before performing string concatenation, the application <span class="bcp14">MUST</span> verify that combining <code>Prefix</code> and <code>RequestPath</code> does not introduce consecutive slashes (e.g., <code>/api//users</code>), resolving the path to a canonical normalized form.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="framework-integration-and-routing">
+<section id="section-4.3">
+        <h3 id="name-framework-integration-and-r">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-framework-integration-and-r" class="section-name selfRef">Framework Integration and Routing</a>
+        </h3>
+<p id="section-4.3-1">Major web frameworks utilize the resolved prefix to establish an application base path (often termed <code>PathBase</code>, <code>contextPath</code>, or <code>root_path</code>).<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.3-2">When returning HTTP redirect status codes (<code>301</code>, <code>302</code>, <code>303</code>, <code>307</code>, or <code>308</code>), the server <span class="bcp14">MUST</span> prepend the prefix to path-absolute references in the <code>Location</code> header field:<a href="#section-4.3-2" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-4.3-3">
+<pre>
+HTTP/1.1 302 Found
+Location: /store/products/42/details
+</pre><a href="#section-4.3-3" class="pilcrow">¶</a>
+</div>
+<p id="section-4.3-4">In HTML generation, the application uses the prefix to populate the <code>&lt;base href="..."&gt;</code> tag or to prefix relative asset links (stylesheets, scripts, images). In REST APIs, generated links in JSON payloads (e.g., <code>_links.self.href</code>) and OpenAPI schema <code>servers[].url</code> entries <span class="bcp14">MUST</span> incorporate the forwarded prefix.<a href="#section-4.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="identity-providers-and-oauth-20-openid-connect">
+<section id="section-4.4">
+        <h3 id="name-identity-providers-and-oaut">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-identity-providers-and-oaut" class="section-name selfRef">Identity Providers and OAuth 2.0 / OpenID Connect</a>
+        </h3>
+<p id="section-4.4-1">Identity and Access Management (IAM) systems (such as Keycloak or ASP.NET Core OpenID Connect handlers) rely on deterministic URI reconstruction:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.4-2.1">
+            <p id="section-4.4-2.1.1">The authorization server generates callback URIs, discovery documents (<code>/.well-known/openid-configuration</code>), and issuer URLs (<code>iss</code>) based on the client-facing base path.<a href="#section-4.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.4-2.2">
+            <p id="section-4.4-2.2.1">If an IAM system behind a reverse proxy does not receive <code>X-Forwarded-Prefix</code>, it generates issuer URLs reflecting internal hostnames and stripped paths (e.g., <code>http://internal-auth:8080/realms/master</code> instead of <code>https://auth.example.com/auth/realms/master</code>). This mismatch causes client token signature validation and redirect URI verification to fail.<a href="#section-4.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.4-2.3">
+            <p id="section-4.4-2.3.1">Conformant IAM systems <span class="bcp14">MUST</span> support <code>X-Forwarded-Prefix</code> to configure the public base path dynamically.<a href="#section-4.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="forwarded-parameter-extension-for-rfc-7239">
+<section id="section-5">
+      <h2 id="name-forwarded-parameter-extensi">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-forwarded-parameter-extensi" class="section-name selfRef">Forwarded Parameter Extension for RFC 7239</a>
+      </h2>
+<p id="section-5-1"><span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> specifies the <code>Forwarded</code> header field and provides an IANA registry for forwarded parameters. While <code>X-Forwarded-Prefix</code> remains the overwhelmingly dominant implementation in existing deployments, this document also registers the <code>prefix</code> parameter for the <code>Forwarded</code> header field to provide a unified syntax for future systems.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<p id="section-5-2">Although <span>[<a href="#RFC6648" class="cite xref">RFC6648</a>]</span> deprecated the "X-" prefix for newly designed application protocols, <code>X-Forwarded-Prefix</code> has already achieved universal adoption across production software. Documenting both the widely deployed <code>X-Forwarded-Prefix</code> header and the forward-compatible <code>prefix</code> parameter for <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> balances immediate interoperability with long-term protocol hygiene.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<div id="the-prefix-parameter-definition">
+<section id="section-5.1">
+        <h3 id="name-the-prefix-parameter-defini">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-the-prefix-parameter-defini" class="section-name selfRef">The "prefix" Parameter Definition</a>
+        </h3>
+<p id="section-5.1-1">The <code>prefix</code> parameter is defined in ABNF as an extension to the <code>forwarded-pair</code> rule of <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span>:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<span id="name-abnf-syntax-for-forwarded-p"></span><figure id="figure-3">
+          <div class="lang-abnf sourcecode" id="section-5.1-2.1">
+<pre>&lt;CODE BEGINS&gt;
+forwarded-pair =/ "prefix=" prefix-value
+prefix-value   = token / quoted-string
+
+&lt;CODE ENDS&gt;</pre>
+</div>
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<a href="#name-abnf-syntax-for-forwarded-p" class="selfRef">ABNF Syntax for Forwarded prefix parameter</a>
+          </figcaption></figure>
+<p id="section-5.1-3">Where <code>prefix-value</code> <span class="bcp14">MUST</span> conform to <code>path-absolute</code> after any unquoting.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<div id="example">
+<section id="section-5.1.1">
+          <h4 id="name-example">
+<a href="#section-5.1.1" class="section-number selfRef">5.1.1. </a><a href="#name-example" class="section-name selfRef">Example</a>
+          </h4>
+<div class="lang-http sourcecode" id="section-5.1.1-1">
+<pre>
+Forwarded: for=198.51.100.1;proto=https;
+           host=example.com;prefix="/api/v1"
+</pre><a href="#section-5.1.1-1" class="pilcrow">¶</a>
+</div>
+<p id="section-5.1.1-2">Intermediaries and origin servers that implement <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span> <span class="bcp14">MAY</span> emit and process the <code>prefix</code> parameter. When both <code>Forwarded: prefix=...</code> and <code>X-Forwarded-Prefix</code> are present on a request from a trusted proxy, the value in the <code>Forwarded</code> header field takes precedence.<a href="#section-5.1.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="Security">
+<section id="section-6">
+      <h2 id="name-security-considerations">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="header-injection-and-spoofing">
+<section id="section-6.1">
+        <h3 id="name-header-injection-and-spoofi">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-header-injection-and-spoofi" class="section-name selfRef">Header Injection and Spoofing</a>
+        </h3>
+<p id="section-6.1-1">If an intermediary at the network boundary fails to strip or overwrite incoming <code>X-Forwarded-Prefix</code> headers from external clients, an attacker can supply an arbitrary prefix:<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-6.1-2">
+<pre>
+GET /profile HTTP/1.1
+Host: example.com
+X-Forwarded-Prefix: /attacker-prefix
+</pre><a href="#section-6.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-3">If the upstream origin server trusts this header, the server will incorporate the malicious prefix into generated links, form actions, and redirects, leading to URL hijacking and application malfunction.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+<p id="section-6.1-4">Perimeter reverse proxies <span class="bcp14">MUST</span> strip or sanitize untrusted <code>X-Forwarded-Prefix</code> headers. Upstream applications <span class="bcp14">MUST NOT</span> trust forwarded headers unless received over a cryptographically or architecturally verified connection from an authorized proxy, applying the atomic trust boundary rule specified in Section 4.1.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="open-redirect-vulnerabilities">
+<section id="section-6.2">
+        <h3 id="name-open-redirect-vulnerabiliti">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-open-redirect-vulnerabiliti" class="section-name selfRef">Open Redirect Vulnerabilities</a>
+        </h3>
+<p id="section-6.2-1">A common vulnerability occurs when an upstream server constructs a redirect target by concatenating an untrusted prefix with a relative path:<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.2-2">
+<pre>
+target = header("X-Forwarded-Prefix") + "/login"
+response.setHeader("Location", target)
+</pre><a href="#section-6.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-6.2-3">If an attacker injects a prefix starting with a double solidus (<code>//</code>), such as:<a href="#section-6.2-3" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-6.2-4">
+<pre>
+X-Forwarded-Prefix: //evil.example.com
+</pre><a href="#section-6.2-4" class="pilcrow">¶</a>
+</div>
+<p id="section-6.2-5">The resulting <code>Location</code> header becomes:<a href="#section-6.2-5" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-6.2-6">
+<pre>
+Location: //evil.example.com/login
+</pre><a href="#section-6.2-6" class="pilcrow">¶</a>
+</div>
+<p id="section-6.2-7">Modern web browsers interpret URIs beginning with <code>//</code> as protocol-relative absolute URIs, redirecting the user to <code>https://evil.example.com/login</code>. This constitutes an open redirect vulnerability, which can be leveraged in phishing attacks and credential theft.<a href="#section-6.2-7" class="pilcrow">¶</a></p>
+<p id="section-6.2-8">To mitigate this risk:<a href="#section-6.2-8" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.2-9.1">
+            <p id="section-6.2-9.1.1">Reverse proxies <span class="bcp14">MUST NOT</span> emit prefixes starting with <code>//</code>.<a href="#section-6.2-9.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-9.2">
+            <p id="section-6.2-9.2.1">Origin servers <span class="bcp14">MUST</span> validate that <code>X-Forwarded-Prefix</code> matches the <code>path-absolute</code> production and strictly begins with exactly one <code>/</code> followed by a non-slash character (or is exactly <code>/</code>).<a href="#section-6.2-9.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-9.3">
+            <p id="section-6.2-9.3.1">Any prefix value failing this validation <span class="bcp14">MUST</span> be rejected or ignored.<a href="#section-6.2-9.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="http-response-and-cache-poisoning">
+<section id="section-6.3">
+        <h3 id="name-http-response-and-cache-poi">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-http-response-and-cache-poi" class="section-name selfRef">HTTP Response and Cache Poisoning</a>
+        </h3>
+<p id="section-6.3-1">If an origin server generates response content that reflects the <code>X-Forwarded-Prefix</code> header (for example, embedding the prefix into HTML asset URLs or API payloads), and an intermediate caching layer (such as a Content Delivery Network or shared cache) caches the response without keying on the prefix, an attacker can trigger cache poisoning.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.3-2">An attacker could issue a request with <code>X-Forwarded-Prefix: /malicious</code>, causing the origin server to generate responses with corrupted links. If the cache stores this response and serves it to legitimate users requesting <code>/</code>, all subsequent users will receive corrupted pages.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.3-3">To prevent cache poisoning:<a href="#section-6.3-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.3-4.1">
+            <p id="section-6.3-4.1.1">Origin servers generating dynamic content based on <code>X-Forwarded-Prefix</code> <span class="bcp14">MUST</span> either include <code>X-Forwarded-Prefix</code> in the <code>Vary</code> response header or instruct intermediaries not to store the response (e.g., <code>Cache-Control: private, no-cache</code>).<a href="#section-6.3-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<div class="lang-http sourcecode" id="section-6.3-5">
+<pre>
+Vary: X-Forwarded-Prefix
+</pre><a href="#section-6.3-5" class="pilcrow">¶</a>
+</div>
+<ul class="normal">
+<li class="normal" id="section-6.3-6.1">
+            <p id="section-6.3-6.1.1">Edge proxies and CDNs <span class="bcp14">MUST NOT</span> allow external clients to vary the <code>X-Forwarded-Prefix</code> header on public cache keys.<a href="#section-6.3-6.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="server-side-request-forgery-ssrf-in-client-and-ssr-frameworks">
+<section id="section-6.4">
+        <h3 id="name-server-side-request-forgery">
+<a href="#section-6.4" class="section-number selfRef">6.4. </a><a href="#name-server-side-request-forgery" class="section-name selfRef">Server-Side Request Forgery (SSRF) in Client and SSR Frameworks</a>
+        </h3>
+<p id="section-6.4-1">In frameworks utilizing Server-Side Rendering (SSR), such as Angular Universal or Node.js SSR engines, the server frequently executes client application code to render the initial DOM. If the SSR engine resolves API requests relative to the client-facing base path derived from <code>X-Forwarded-Prefix</code>, a spoofed prefix could direct internal HTTP requests to unintended backend services or internal cloud metadata endpoints (e.g., <code>http://169.254.169.254/</code>).<a href="#section-6.4-1" class="pilcrow">¶</a></p>
+<p id="section-6.4-2">As detailed in Angular security guidance <span>[<a href="#ANGULAR-SECURITY" class="cite xref">ANGULAR-SECURITY</a>]</span>, applications <span class="bcp14">MUST</span> ensure that base URIs derived from forwarded headers are strictly validated against an allowlist of permitted domain names and internal path structures before initiating server-side requests.<a href="#section-6.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="path-traversal">
+<section id="section-6.5">
+        <h3 id="name-path-traversal">
+<a href="#section-6.5" class="section-number selfRef">6.5. </a><a href="#name-path-traversal" class="section-name selfRef">Path Traversal</a>
+        </h3>
+<p id="section-6.5-1">An attacker might attempt path traversal attacks by injecting <code>../</code> segments into the prefix header:<a href="#section-6.5-1" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-6.5-2">
+<pre>
+X-Forwarded-Prefix: /api/v1/../../admin
+</pre><a href="#section-6.5-2" class="pilcrow">¶</a>
+</div>
+<p id="section-6.5-3">Intermediaries and upstream origin servers <span class="bcp14">MUST</span> normalize path segments according to Section 5.2.4 of <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span> and reject any prefix that attempts to navigate above the root directory.<a href="#section-6.5-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="IANA">
+<section id="section-7">
+      <h2 id="name-iana-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<div id="http-field-name-registration-x-forwarded-prefix">
+<section id="section-7.1">
+        <h3 id="name-http-field-name-registratio">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-http-field-name-registratio" class="section-name selfRef">HTTP Field Name Registration: X-Forwarded-Prefix</a>
+        </h3>
+<p id="section-7.1-1">IANA is requested to register the <code>X-Forwarded-Prefix</code> header field in the <a href="https://www.iana.org/assignments/http-fields/">HTTP Field Name Registry</a> in accordance with <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>:<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.1-2.1">
+            <p id="section-7.1-2.1.1"><strong>Field Name:</strong> <code>X-Forwarded-Prefix</code><a href="#section-7.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-2.2">
+            <p id="section-7.1-2.2.1"><strong>Status:</strong> <code>permanent</code><a href="#section-7.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-2.3">
+            <p id="section-7.1-2.3.1"><strong>Structured Type:</strong> List of Strings (see Section 2.2 and <span>[<a href="#RFC9651" class="cite xref">RFC9651</a>]</span>)<a href="#section-7.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-2.4">
+            <p id="section-7.1-2.4.1"><strong>Specification Document:</strong> This document<a href="#section-7.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.1-2.5">
+            <p id="section-7.1-2.5.1"><strong>Comments:</strong> Conveys the original URI path prefix stripped or rewritten by reverse proxies, API gateways, and load balancers. Classical deployments emit unquoted path-absolute values.<a href="#section-7.1-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="http-forwarded-parameter-registration-prefix">
+<section id="section-7.2">
+        <h3 id="name-http-forwarded-parameter-re">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-http-forwarded-parameter-re" class="section-name selfRef">HTTP Forwarded Parameter Registration: prefix</a>
+        </h3>
+<p id="section-7.2-1">IANA is requested to register the <code>prefix</code> parameter in the <a href="https://www.iana.org/assignments/http-parameters/">HTTP Forwarded Parameters Registry</a> established by <span>[<a href="#RFC7239" class="cite xref">RFC7239</a>]</span>:<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.2-2.1">
+            <p id="section-7.2-2.1.1"><strong>Parameter Name:</strong> <code>prefix</code><a href="#section-7.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-2.2">
+            <p id="section-7.2-2.2.1"><strong>Specification Document:</strong> This document<a href="#section-7.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-2.3">
+            <p id="section-7.2-2.3.1"><strong>Description:</strong> The original URI path prefix removed or rewritten by an intermediary.<a href="#section-7.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-8">
+      <h2 id="name-references">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-8.1">
+        <h3 id="name-normative-references">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC3986">[RFC3986]</dt>
+        <dd>
+<span class="refAuthor">Berners-Lee, T.</span>, <span class="refAuthor">Fielding, R.</span>, and <span class="refAuthor">L. Masinter</span>, <span class="refTitle">"Uniform Resource Identifier (URI): Generic Syntax"</span>, <span class="seriesInfo">STD 66</span>, <span class="seriesInfo">RFC 3986</span>, <span class="seriesInfo">DOI 10.17487/RFC3986</span>, <time datetime="2005-01" class="refDate">January 2005</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc3986">https://www.rfc-editor.org/rfc/rfc3986</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5234">[RFC5234]</dt>
+        <dd>
+<span class="refAuthor">Crocker, D., Ed.</span> and <span class="refAuthor">P. Overell</span>, <span class="refTitle">"Augmented BNF for Syntax Specifications: ABNF"</span>, <span class="seriesInfo">STD 68</span>, <span class="seriesInfo">RFC 5234</span>, <span class="seriesInfo">DOI 10.17487/RFC5234</span>, <time datetime="2008-01" class="refDate">January 2008</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5234">https://www.rfc-editor.org/rfc/rfc5234</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9651">[RFC9651]</dt>
+        <dd>
+<span class="refAuthor">Nottingham, M.</span> and <span class="refAuthor">P. Kamp</span>, <span class="refTitle">"Structured Field Values for HTTP"</span>, <span class="seriesInfo">RFC 9651</span>, <span class="seriesInfo">DOI 10.17487/RFC9651</span>, <time datetime="2024-09" class="refDate">September 2024</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9651">https://www.rfc-editor.org/rfc/rfc9651</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+      <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-8.2">
+        <h3 id="name-informative-references">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC7239">[RFC7239]</dt>
+        <dd>
+<span class="refAuthor">Petersson, A.</span> and <span class="refAuthor">M. Nilsson</span>, <span class="refTitle">"Forwarded HTTP Extension"</span>, <span class="seriesInfo">RFC 7239</span>, <span class="seriesInfo">DOI 10.17487/RFC7239</span>, <time datetime="2014-06" class="refDate">June 2014</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7239">https://www.rfc-editor.org/rfc/rfc7239</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6648">[RFC6648]</dt>
+        <dd>
+<span class="refAuthor">Saint-Andre, P.</span>, <span class="refAuthor">Crocker, D.</span>, and <span class="refAuthor">M. Nottingham</span>, <span class="refTitle">"Deprecating the "X-" Prefix and Similar Constructs in Application Protocols"</span>, <span class="seriesInfo">BCP 178</span>, <span class="seriesInfo">RFC 6648</span>, <span class="seriesInfo">DOI 10.17487/RFC6648</span>, <time datetime="2012-06" class="refDate">June 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6648">https://www.rfc-editor.org/rfc/rfc6648</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SPRING-WEB">[SPRING-WEB]</dt>
+        <dd>
+<span class="refAuthor">VMware / Broadcom</span>, <span class="refTitle">"Spring Framework Reference Documentation - Forwarded Headers"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://docs.spring.io/spring-framework/reference/web/webmvc/filters.html#x-forwarded-prefix">https://docs.spring.io/spring-framework/reference/web/webmvc/filters.html#x-forwarded-prefix</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ASPNET-CORE">[ASPNET-CORE]</dt>
+        <dd>
+<span class="refAuthor">Microsoft Corporation</span>, <span class="refTitle">"Configure ASP.NET Core to work with proxy servers and load balancers"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://learn.microsoft.com/aspnet/core/host-and-deploy/proxy-load-balancer">https://learn.microsoft.com/aspnet/core/host-and-deploy/proxy-load-balancer</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="KEYCLOAK-PROXY">[KEYCLOAK-PROXY]</dt>
+        <dd>
+<span class="refAuthor">Red Hat</span>, <span class="refTitle">"Keycloak Server Administration Guide - Configuring the Reverse Proxy Headers"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://www.keycloak.org/server/reverseproxy#_configure_the_reverse_proxy_headers">https://www.keycloak.org/server/reverseproxy#_configure_the_reverse_proxy_headers</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ANGULAR-SECURITY">[ANGULAR-SECURITY]</dt>
+        <dd>
+<span class="refAuthor">Google LLC</span>, <span class="refTitle">"Angular Security Best Practices - Server-Side Request Forgery (SSRF) Prevention"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://angular.dev/best-practices/security">https://angular.dev/best-practices/security</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="FABIO-LB">[FABIO-LB]</dt>
+      <dd>
+<span class="refAuthor">Schroeder, F.</span>, <span class="refTitle">"Fabio - A fast, modern, zero-conf load-balancing HTTP(S) router for Consul"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://github.com/fabiolb/fabio">https://github.com/fabiolb/fabio</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="existing-implementations-and-industry-examples">
+<section id="appendix-A">
+      <h2 id="name-existing-implementations-an">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-existing-implementations-an" class="section-name selfRef">Existing Implementations and Industry Examples</a>
+      </h2>
+<p id="appendix-A-1">This non-normative appendix documents the widespread deployment of <code>X-Forwarded-Prefix</code> across major platforms, illustrating the de-facto consensus that motivated this specification.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<div id="java-spring-framework">
+<section id="appendix-A.1">
+        <h3 id="name-java-spring-framework">
+<a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-java-spring-framework" class="section-name selfRef">Java / Spring Framework</a>
+        </h3>
+<p id="appendix-A.1-1">In the Java ecosystem, the Spring Framework provides native processing of <code>X-Forwarded-Prefix</code> through <code>ForwardedHeaderFilter</code> and <code>UriComponentsBuilder</code> <span>[<a href="#SPRING-WEB" class="cite xref">SPRING-WEB</a>]</span>:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A.1-2.1">
+            <p id="appendix-A.1-2.1.1">When <code>ForwardedHeaderFilter</code> is enabled, Spring extracts <code>X-Forwarded-Prefix</code> and adjusts the servlet request's context path.<a href="#appendix-A.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-2.2">
+            <p id="appendix-A.1-2.2.1"><code>ServletUriComponentsBuilder.fromCurrentRequest()</code> automatically prepends the forwarded prefix when constructing self-referential links, HATEOAS hypermedia resources, and redirect targets.<a href="#appendix-A.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-2.3">
+            <p id="appendix-A.1-2.3.1">Spring Cloud Gateway provides built-in filter factories (such as <code>PrefixPath</code> and <code>StripPrefix</code>) that automatically populate <code>X-Forwarded-Prefix</code> when routing requests to downstream microservices.<a href="#appendix-A.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="microsoft-net-aspnet-core">
+<section id="appendix-A.2">
+        <h3 id="name-microsoft-net-aspnet-core">
+<a href="#appendix-A.2" class="section-number selfRef">A.2. </a><a href="#name-microsoft-net-aspnet-core" class="section-name selfRef">Microsoft .NET / ASP.NET Core</a>
+        </h3>
+<p id="appendix-A.2-1">ASP.NET Core implements native handling of reverse proxy headers via <code>Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersMiddleware</code> <span>[<a href="#ASPNET-CORE" class="cite xref">ASPNET-CORE</a>]</span>:<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A.2-2.1">
+            <p id="appendix-A.2-2.1.1">Setting <code>ForwardedHeadersOptions.ForwardedHeaders</code> to include <code>ForwardedHeaders.All</code> enables processing of <code>X-Forwarded-Prefix</code>.<a href="#appendix-A.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.2-2.2">
+            <p id="appendix-A.2-2.2.1">The middleware extracts the header value and assigns it to <code>HttpContext.Request.PathBase</code>.<a href="#appendix-A.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.2-2.3">
+            <p id="appendix-A.2-2.3.1">Subsequent routing, URL generation (<code>IUrlHelper.Action</code>), and redirect helpers incorporate <code>PathBase</code>, ensuring consistent path resolution across reverse proxies.<a href="#appendix-A.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="red-hat-keycloak">
+<section id="appendix-A.3">
+        <h3 id="name-red-hat-keycloak">
+<a href="#appendix-A.3" class="section-number selfRef">A.3. </a><a href="#name-red-hat-keycloak" class="section-name selfRef">Red Hat Keycloak</a>
+        </h3>
+<p id="appendix-A.3-1">Keycloak, an open-source identity and access management solution, requires reverse proxy headers to function correctly when mounted behind path-rewriting gateways <span>[<a href="#KEYCLOAK-PROXY" class="cite xref">KEYCLOAK-PROXY</a>]</span>:<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A.3-2.1">
+            <p id="appendix-A.3-2.1.1">When Keycloak is deployed at a subpath (e.g., <code>/auth</code>) on a public reverse proxy, but served from <code>/</code> internally, the proxy passes <code>X-Forwarded-Prefix: /auth</code>.<a href="#appendix-A.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.3-2.2">
+            <p id="appendix-A.3-2.2.1">Keycloak utilizes this header to establish the frontend base URL, generating correct endpoints in OpenID Connect discovery metadata, login forms, and authorization redirect URIs.<a href="#appendix-A.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="google-angular-and-frontend-frameworks">
+<section id="appendix-A.4">
+        <h3 id="name-google-angular-and-frontend">
+<a href="#appendix-A.4" class="section-number selfRef">A.4. </a><a href="#name-google-angular-and-frontend" class="section-name selfRef">Google Angular and Frontend Frameworks</a>
+        </h3>
+<p id="appendix-A.4-1">Frontend frameworks with Server-Side Rendering (SSR) capabilities, including Angular, rely on proxy headers to reconstruct the public URL and base href <span>[<a href="#ANGULAR-SECURITY" class="cite xref">ANGULAR-SECURITY</a>]</span>:<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A.4-2.1">
+            <p id="appendix-A.4-2.1.1">Angular SSR applications use the forwarded prefix to populate the <code>&lt;base href&gt;</code> element in rendered HTML.<a href="#appendix-A.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.4-2.2">
+            <p id="appendix-A.4-2.2.1">Documentation explicitly emphasizes the security boundaries required when consuming <code>X-Forwarded-Prefix</code> to prevent Server-Side Request Forgery (SSRF) vulnerabilities in SSR execution environments.<a href="#appendix-A.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="go-ecosystem-and-routing-proxies">
+<section id="appendix-A.5">
+        <h3 id="name-go-ecosystem-and-routing-pr">
+<a href="#appendix-A.5" class="section-number selfRef">A.5. </a><a href="#name-go-ecosystem-and-routing-pr" class="section-name selfRef">Go Ecosystem and Routing Proxies</a>
+        </h3>
+<p id="appendix-A.5-1">In the Go programming language ecosystem, numerous reverse proxies and routing libraries implement <code>X-Forwarded-Prefix</code>:<a href="#appendix-A.5-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlNewline" id="appendix-A.5-2">
+          <dt id="appendix-A.5-2.1">Fabio:</dt>
+          <dd style="margin-left: 1.5em" id="appendix-A.5-2.2">
+            <p id="appendix-A.5-2.2.1">A Consul-aware HTTP routing proxy <span>[<a href="#FABIO-LB" class="cite xref">FABIO-LB</a>]</span> that strips route prefixes and injects <code>X-Forwarded-Prefix</code> before passing requests upstream.<a href="#appendix-A.5-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="appendix-A.5-2.3">Traefik:</dt>
+          <dd style="margin-left: 1.5em" id="appendix-A.5-2.4">
+            <p id="appendix-A.5-2.4.1">An edge router and ingress controller that includes <code>X-Forwarded-Prefix</code> by default when the <code>StripPrefix</code> middleware is applied.<a href="#appendix-A.5-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="appendix-A.5-2.5">Chi and Gin:</dt>
+          <dd style="margin-left: 1.5em" id="appendix-A.5-2.6">
+            <p id="appendix-A.5-2.6.1">Popular Go HTTP routing frameworks provide middleware libraries to consume <code>X-Forwarded-Prefix</code> and update request context paths accordingly.<a href="#appendix-A.5-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="python-web-frameworks">
+<section id="appendix-A.6">
+        <h3 id="name-python-web-frameworks">
+<a href="#appendix-A.6" class="section-number selfRef">A.6. </a><a href="#name-python-web-frameworks" class="section-name selfRef">Python Web Frameworks</a>
+        </h3>
+<span class="break"></span><dl class="dlNewline" id="appendix-A.6-1">
+          <dt id="appendix-A.6-1.1">FastAPI and Starlette:</dt>
+          <dd style="margin-left: 1.5em" id="appendix-A.6-1.2">
+            <p id="appendix-A.6-1.2.1">Provide the <code>root_path</code> configuration parameter specifically designed to consume <code>X-Forwarded-Prefix</code>. This enables OpenAPI/Swagger interactive documentation to locate the correct API server endpoints.<a href="#appendix-A.6-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="appendix-A.6-1.3">Uvicorn:</dt>
+          <dd style="margin-left: 1.5em" id="appendix-A.6-1.4">
+            <p id="appendix-A.6-1.4.1">An ASGI web server implementation that features a <code>--proxy-headers</code> flag, parsing <code>X-Forwarded-Prefix</code> to set the ASGI scope <code>root_path</code>.<a href="#appendix-A.6-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="acknowledgements">
+<section id="appendix-B">
+      <h2 id="name-acknowledgements">
+<a href="#name-acknowledgements" class="section-name selfRef">Acknowledgements</a>
+      </h2>
+<p id="appendix-B-1">The author would like to acknowledge the open-source maintainers, web framework architects, and network engineers across the Spring, .NET, Keycloak, Angular, Fabio, and wider Internet engineering communities whose consistent, pragmatic implementation of path-forwarding headers established the foundation for this standard.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-C">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Türkalp Burak Kayrancıoğlu (<span class="role">editor</span>)</span></div>
+<div dir="auto" class="left"><span class="country-name">Türkiye</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:turkalp.kayrancioglu@trendyol.com" class="email">turkalp.kayrancioglu@trendyol.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Yunus Özen (<span class="role">editor</span>)</span></div>
+<div dir="auto" class="left"><span class="country-name">Türkiye</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:yunus.ozen@yalova.edu.tr" class="email">yunus.ozen@yalova.edu.tr</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
