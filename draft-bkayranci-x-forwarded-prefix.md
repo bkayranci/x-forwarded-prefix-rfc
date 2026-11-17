@@ -6,7 +6,7 @@ submissiontype: IETF
 area: Applications and Real-Time (ART)
 wg: HTTP Working Group
 
-docname: draft-bkayranci-x-forwarded-prefix-00
+docname: draft-bkayranci-x-forwarded-prefix-latest
 
 title: The X-Forwarded-Prefix HTTP Header Field
 abbrev: X-Forwarded-Prefix Header
